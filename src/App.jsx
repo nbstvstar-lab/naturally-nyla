@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Plus, Pencil, Trash2, X, DollarSign, Calendar, Package, TrendingUp,
-  Search, ChevronUp, ChevronDown, CheckCircle2, Clock, XCircle,
+  TrendingDown, Search, ChevronUp, ChevronDown, CheckCircle2, Clock, XCircle,
   AlertTriangle, Sparkles, Wallet, CalendarClock, CalendarCheck2,
-  StickyNote, Crown, ArrowUpRight
+  StickyNote, Crown, ArrowUpRight, ArrowDownRight, ShoppingCart, RefreshCw
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
-/* Utilities                                                          */
+/* Utilities & Configurations                                         */
 /* ------------------------------------------------------------------ */
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -21,6 +21,13 @@ const shortDate = (isoDate) => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
+const formatMonthYear = (yearMonthStr) => {
+  if (!yearMonthStr) return "";
+  const [y, m] = yearMonthStr.split("-").map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+};
+
 const to12h = (t) => {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
@@ -30,87 +37,37 @@ const to12h = (t) => {
 };
 
 const SERVICES = [
-  "Retwists",
-  "Full Head Cornrows",
-  "Twists / Braids",
-  "Wash & Style",
-  "Silk Press",
-  "Loc Maintenance",
-  "Kids Style",
-  "Consultation",
+  "Retwist",
+  "Retwist + Style",
+  "Cornrows",
+  "Half-head Cornrows",
+  "Twists/Braids",
+  "Other",
 ];
 
-const PAYMENT_METHODS = ["Cash", "Card", "Zelle", "CashApp", "Venmo"];
-const REVENUE_SOURCES = ["Client Service", "Product Sale", "Tip", "Other"];
-const INVENTORY_CATEGORIES = ["Styling Product", "Tools", "Hair Care", "Accessories"];
+const PAYMENT_METHODS = ["Zelle", "CashApp", "Cash", "Card", "Venmo"];
+const REVENUE_SOURCES = ["Client Service", "Tip", "Product Sale", "Other"];
+const INVENTORY_CATEGORIES = ["Hair Products", "Braiding Hair", "Tools & Combs", "Accessories", "Sanitation / Other"];
 
 /* ------------------------------------------------------------------ */
-/* Seed data                                                          */
-/* ------------------------------------------------------------------ */
-
-const seedRevenue = [
-  { id: uid(), date: "2026-08-29", source: "Amara J.", service: "Full Head Cornrows", amount: 165, method: "Zelle" },
-  { id: uid(), date: "2026-08-28", source: "Destiny R.", service: "Retwists", amount: 95, method: "Cash" },
-  { id: uid(), date: "2026-08-27", source: "Product Sale", service: "Edge Control (2)", amount: 36, method: "Card" },
-  { id: uid(), date: "2026-08-26", source: "Keisha M.", service: "Silk Press", amount: 85, method: "CashApp" },
-  { id: uid(), date: "2026-08-25", source: "Tip", service: "Jasmine T. — Braids", amount: 20, method: "Cash" },
-  { id: uid(), date: "2026-08-24", source: "Nia W.", service: "Twists / Braids", amount: 180, method: "Zelle" },
-  { id: uid(), date: "2026-08-22", source: "Product Sale", service: "Conditioning Oil (3)", amount: 54, method: "Card" },
-  { id: uid(), date: "2026-08-21", source: "Simone P.", service: "Loc Maintenance", amount: 110, method: "Venmo" },
-  { id: uid(), date: "2026-08-19", source: "Tasha B.", service: "Wash & Style", amount: 65, method: "Cash" },
-  { id: uid(), date: "2026-08-17", source: "Renee C.", service: "Full Head Cornrows", amount: 175, method: "Zelle" },
-];
-
-const seedAppointments = [
-  { id: uid(), client: "Amara Johnson", service: "Retwists", date: "2026-09-05", time: "10:00", price: 95, status: "Scheduled", notes: "Prefers medium coils." },
-  { id: uid(), client: "Brianna Cole", service: "Full Head Cornrows", date: "2026-09-06", time: "13:30", price: 165, status: "Scheduled", notes: "First-time client." },
-  { id: uid(), client: "Jasmine Turner", service: "Twists / Braids", date: "2026-09-08", time: "09:00", price: 180, status: "Scheduled", notes: "Wants knotless." },
-  { id: uid(), client: "Monique Freeman", service: "Silk Press", date: "2026-09-10", time: "11:00", price: 85, status: "Scheduled", notes: "" },
-  { id: uid(), client: "Destiny Reed", service: "Wash & Style", date: "2026-08-28", time: "14:00", price: 65, status: "Completed", notes: "Loved the finish." },
-  { id: uid(), client: "Keisha Moore", service: "Silk Press", date: "2026-08-26", time: "12:00", price: 85, status: "Completed", notes: "" },
-  { id: uid(), client: "Nia Williams", service: "Twists / Braids", date: "2026-08-24", time: "10:30", price: 180, status: "Completed", notes: "Added length." },
-  { id: uid(), client: "Tasha Brooks", service: "Wash & Style", date: "2026-08-19", time: "15:00", price: 65, status: "Completed", notes: "" },
-  { id: uid(), client: "Erica Sims", service: "Retwists", date: "2026-08-15", time: "09:30", price: 95, status: "Canceled", notes: "Rescheduling next month." },
-  { id: uid(), client: "Renee Carter", service: "Full Head Cornrows", date: "2026-08-17", time: "11:00", price: 175, status: "Completed", notes: "" },
-];
-
-const seedInventory = [
-  { id: uid(), name: "Edge Control", category: "Styling Product", stock: 14, unitCost: 4.5, sellingPrice: 18 },
-  { id: uid(), name: "Foaming Mousse", category: "Styling Product", stock: 9, unitCost: 5.25, sellingPrice: 20 },
-  { id: uid(), name: "Conditioning Oil", category: "Hair Care", stock: 3, unitCost: 6.0, sellingPrice: 22 },
-  { id: uid(), name: "Parting Combs", category: "Tools", stock: 22, unitCost: 1.1, sellingPrice: 6 },
-  { id: uid(), name: "Satin Bonnets", category: "Accessories", stock: 4, unitCost: 3.0, sellingPrice: 15 },
-  { id: uid(), name: "Braiding Gel", category: "Styling Product", stock: 11, unitCost: 3.75, sellingPrice: 16 },
-  { id: uid(), name: "Scalp Serum", category: "Hair Care", stock: 2, unitCost: 7.5, sellingPrice: 28 },
-  { id: uid(), name: "Butterfly Clips", category: "Accessories", stock: 30, unitCost: 0.6, sellingPrice: 4 },
-];
-
-/* ------------------------------------------------------------------ */
-/* 4-Point Cross Star / Sparkle Component                             */
+/* 4-Point Cross Star / Sparkle Background                            */
 /* ------------------------------------------------------------------ */
 
 const CrossStar = ({ size = 24, className = "", style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="currentColor"
-  >
+  <svg viewBox="0 0 24 24" width={size} height={size} className={className} style={style} fill="currentColor">
     <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" />
   </svg>
 );
 
 function BackgroundStars() {
   const stars = [
-    { top: "6%", left: "4%", size: 22, color: "text-[#ccaa79]", delay: "0s", duration: "4s" },
-    { top: "12%", right: "8%", size: 30, color: "text-[#5f0d7a]/30", delay: "1s", duration: "5s" },
-    { top: "28%", left: "88%", size: 18, color: "text-[#ccaa79]/80", delay: "2s", duration: "3.5s" },
-    { top: "45%", left: "3%", size: 26, color: "text-[#5f0d7a]/20", delay: "1.5s", duration: "6s" },
-    { top: "60%", right: "4%", size: 24, color: "text-[#ccaa79]", delay: "0.5s", duration: "4.5s" },
-    { top: "78%", left: "6%", size: 20, color: "text-[#ccaa79]/60", delay: "2.5s", duration: "5s" },
-    { top: "85%", right: "12%", size: 28, color: "text-[#5f0d7a]/25", delay: "1.2s", duration: "4.2s" },
+    { top: "5%", left: "3%", size: 24, color: "text-[#ccaa79]", delay: "0s", duration: "4s" },
+    { top: "12%", right: "6%", size: 32, color: "text-[#5f0d7a]/25", delay: "1s", duration: "5s" },
+    { top: "28%", left: "92%", size: 18, color: "text-[#ccaa79]/80", delay: "2s", duration: "3.5s" },
+    { top: "45%", left: "2%", size: 26, color: "text-[#5f0d7a]/20", delay: "1.5s", duration: "6s" },
+    { top: "62%", right: "4%", size: 24, color: "text-[#ccaa79]", delay: "0.5s", duration: "4.5s" },
+    { top: "78%", left: "5%", size: 20, color: "text-[#ccaa79]/60", delay: "2.5s", duration: "5s" },
+    { top: "86%", right: "10%", size: 28, color: "text-[#5f0d7a]/25", delay: "1.2s", duration: "4.2s" },
   ];
 
   return (
@@ -135,16 +92,16 @@ function BackgroundStars() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Storage Hook & Buttons                                             */
+/* Storage Hook & Micro Components                                    */
 /* ------------------------------------------------------------------ */
 
-function useLocalState(key, seed) {
+function useLocalState(key, initialValue) {
   const [state, setState] = useState(() => {
     try {
       const raw = window.localStorage?.getItem(key);
       if (raw) return JSON.parse(raw);
     } catch (e) {}
-    return seed;
+    return initialValue;
   });
   useEffect(() => {
     try {
@@ -159,17 +116,11 @@ const PillButton = ({ children, onClick, variant = "primary", className = "", ty
   const variants = {
     primary: "bg-gradient-to-r from-[#5f0d7a] to-[#7b149d] text-white hover:from-[#4d0963] hover:to-[#681085] shadow-[#5f0d7a]/25",
     gold: "bg-gradient-to-r from-[#ccaa79] to-[#dfc399] text-[#341e05] hover:brightness-105 shadow-[#ccaa79]/30",
-    outlineGold: "bg-white text-[#5f0d7a] border-2 border-[#ccaa79] hover:bg-[#faf4ec]",
     danger: "bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100",
     subtle: "bg-[#f5eef9] text-[#5f0d7a] hover:bg-[#ecdef3]",
   };
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={`${base} ${variants[variant]} px-5 py-2.5 text-sm ${className}`}
-    >
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${variants[variant]} px-5 py-2.5 text-sm ${className}`}>
       {children}
     </button>
   );
@@ -178,8 +129,9 @@ const PillButton = ({ children, onClick, variant = "primary", className = "", ty
 const IconCircleButton = ({ icon: Icon, onClick, variant = "purple", size = "sm", title }) => {
   const sizes = { sm: "w-8 h-8", md: "w-10 h-10" };
   const variants = {
-    purple: "bg-[#f4ecfb] text-[#5f0d7a] hover:bg-[#ebdcf6] hover:text-[#4d0963]",
+    purple: "bg-[#f4ecfb] text-[#5f0d7a] hover:bg-[#ebdcf6]",
     gold: "bg-[#fbf4ea] text-[#936b28] hover:bg-[#f5e5cf]",
+    green: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
     danger: "bg-rose-50 text-rose-500 hover:bg-rose-100",
   };
   return (
@@ -187,7 +139,7 @@ const IconCircleButton = ({ icon: Icon, onClick, variant = "purple", size = "sm"
       type="button"
       title={title}
       onClick={onClick}
-      className={`${sizes[size]} ${variants[variant]} rounded-full flex items-center justify-center transition active:scale-90 shrink-0 shadow-sm`}
+      className={`${sizes[size]} ${variants[variant]} rounded-full flex items-center justify-center transition active:scale-90 shrink-0 shadow-2xs`}
     >
       <Icon size={size === "sm" ? 15 : 18} strokeWidth={2.4} />
     </button>
@@ -200,9 +152,10 @@ const Badge = ({ children, tone = "purple" }) => {
     gold: "bg-[#fbf5eb] text-[#8e6524] border border-[#ecd9be]",
     green: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     red: "bg-rose-50 text-rose-600 border border-rose-200",
+    amber: "bg-amber-50 text-amber-800 border border-amber-200",
   };
   return (
-    <span className={`${tones[tone]} px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shadow-2xs`}>
+    <span className={`${tones[tone]} px-3 py-0.5 rounded-full text-xs font-bold whitespace-nowrap shadow-2xs`}>
       {children}
     </span>
   );
@@ -216,7 +169,7 @@ function Modal({ open, onClose, title, children, icon: Icon }) {
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white w-full sm:max-w-lg rounded-t-[32px] sm:rounded-[32px] max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-[#ccaa79]/40 animate-[slideUp_0.25s_ease-out]">
-        <div className="sticky top-0 bg-white/95 backdrop-blur px-6 pt-6 pb-4 flex items-center justify-between border-b border-[#f3e9f8] rounded-t-[32px]">
+        <div className="sticky top-0 bg-white/95 backdrop-blur px-6 pt-6 pb-4 flex items-center justify-between border-b border-[#f3e9f8] rounded-t-[32px] z-10">
           <div className="flex items-center gap-3">
             {Icon && (
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5f0d7a] to-[#8c1ba8] text-[#ccaa79] flex items-center justify-center shadow-md shadow-[#5f0d7a]/20">
@@ -259,7 +212,7 @@ function ConfirmDialog({ open, message, onCancel, onConfirm }) {
         <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3 border border-rose-100">
           <Trash2 size={24} />
         </div>
-        <p className="font-extrabold text-[#260531] text-lg mb-1">Delete item?</p>
+        <p className="font-extrabold text-[#260531] text-lg mb-1">Confirm Deletion</p>
         <p className="text-xs text-[#7d688a] mb-5 font-semibold">{message}</p>
         <div className="flex gap-3">
           <PillButton variant="subtle" className="flex-1" onClick={onCancel}>Cancel</PillButton>
@@ -271,28 +224,79 @@ function ConfirmDialog({ open, message, onCancel, onConfirm }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Main Application                                                   */
+/* Main Application Container                                         */
 /* ------------------------------------------------------------------ */
 
 export default function App() {
   const [tab, setTab] = useState("overview");
 
-  const [revenue, setRevenue] = useLocalState("nn_revenue", seedRevenue);
-  const [appointments, setAppointments] = useLocalState("nn_appointments", seedAppointments);
-  const [inventory, setInventory] = useLocalState("nn_inventory", seedInventory);
+  // Clean empty state defaults (v2 keys automatically ignore old demo clients)
+  const [revenue, setRevenue] = useLocalState("nn_revenue_v2", []);
+  const [appointments, setAppointments] = useLocalState("nn_appointments_v2", []);
+  const [inventory, setInventory] = useLocalState("nn_inventory_v2", []);
+
+  // Completion modal state for logging tip & marking complete
+  const [completingAppt, setCompletingAppt] = useState(null);
 
   /* Calculations */
   const totalRevenue = useMemo(() => revenue.reduce((s, r) => s + Number(r.amount || 0), 0), [revenue]);
-  const inventoryCostValue = useMemo(
-    () => inventory.reduce((s, p) => s + Number(p.unitCost || 0) * Number(p.stock || 0), 0),
+  const totalSupplyExpenses = useMemo(
+    () => inventory.reduce((s, p) => s + Number(p.totalSpent || 0), 0),
     [inventory]
   );
-  const activeInventoryValue = useMemo(
-    () => inventory.reduce((s, p) => s + Number(p.sellingPrice || 0) * Number(p.stock || 0), 0),
-    [inventory]
-  );
-  const netProfit = totalRevenue - inventoryCostValue;
+  const netProfit = totalRevenue - totalSupplyExpenses;
   const totalAppointments = appointments.length;
+
+  /* Monthly Revenue Breakdown & Comparison */
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+
+  const monthlyData = useMemo(() => {
+    const map = {};
+    revenue.forEach((r) => {
+      const ym = (r.date || "").slice(0, 7);
+      if (!ym) return;
+      if (!map[ym]) map[ym] = { revenue: 0, count: 0 };
+      map[ym].revenue += Number(r.amount || 0);
+      map[ym].count += 1;
+    });
+    return map;
+  }, [revenue]);
+
+  const currentMonthRevenue = monthlyData[currentMonthKey]?.revenue || 0;
+  const prevMonthRevenue = monthlyData[prevMonthKey]?.revenue || 0;
+  const monthDiff = currentMonthRevenue - prevMonthRevenue;
+  const monthDiffPct = prevMonthRevenue > 0 ? ((monthDiff / prevMonthRevenue) * 100).toFixed(0) : null;
+
+  /* Auto-transfer completed appointment to revenue */
+  const handleFinalizeCompletion = ({ apptId, tip, paymentMethod, date }) => {
+    const appt = appointments.find((a) => a.id === apptId);
+    if (!appt) return;
+
+    const base = Number(appt.price) || 0;
+    const tipVal = Number(tip) || 0;
+    const finalAmount = base + tipVal;
+
+    // 1. Mark appointment as completed
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === apptId ? { ...a, status: "Completed", tip: tipVal } : a))
+    );
+
+    // 2. Add directly to revenue
+    const newRev = {
+      id: uid(),
+      date: date || new Date().toISOString().slice(0, 10),
+      source: appt.client,
+      service: `${appt.service}${tipVal > 0 ? ` (+$${tipVal} tip)` : ""}`,
+      amount: finalAmount,
+      method: paymentMethod,
+      apptId: appt.id,
+    };
+    setRevenue((prev) => [newRev, ...prev]);
+    setCompletingAppt(null);
+  };
 
   return (
     <div
@@ -305,7 +309,7 @@ export default function App() {
         ::selection { background: #ccaa79; color: #2e083c; }
       `}</style>
 
-      {/* Decorative Cross Stars & Ambient Backdrops */}
+      {/* Decorative Cross Stars & Ambient Gradients */}
       <BackgroundStars />
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#5f0d7a]/10 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-1/3 left-10 w-96 h-96 bg-[#ccaa79]/20 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -316,53 +320,68 @@ export default function App() {
         {tab === "overview" && (
           <OverviewTab
             totalRevenue={totalRevenue}
+            currentMonthRevenue={currentMonthRevenue}
+            prevMonthRevenue={prevMonthRevenue}
+            monthDiff={monthDiff}
+            monthDiffPct={monthDiffPct}
             netProfit={netProfit}
             totalAppointments={totalAppointments}
-            activeInventoryValue={activeInventoryValue}
+            totalSupplyExpenses={totalSupplyExpenses}
             revenue={revenue}
             setRevenue={setRevenue}
+            monthlyData={monthlyData}
           />
         )}
         {tab === "appointments" && (
-          <AppointmentsTab appointments={appointments} setAppointments={setAppointments} />
+          <AppointmentsTab
+            appointments={appointments}
+            setAppointments={setAppointments}
+            onPromptCompletion={(appt) => setCompletingAppt(appt)}
+          />
         )}
         {tab === "inventory" && (
           <InventoryTab inventory={inventory} setInventory={setInventory} />
         )}
       </main>
+
+      {/* Complete & Tip Modal */}
+      {completingAppt && (
+        <CompleteAppointmentModal
+          appt={completingAppt}
+          onClose={() => setCompletingAppt(null)}
+          onConfirm={handleFinalizeCompletion}
+        />
+      )}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Header with Rounded Bank-Style Logo                                */
+/* Header Component                                                   */
 /* ------------------------------------------------------------------ */
 
 function Header({ tab, setTab }) {
   const items = [
     { id: "overview", label: "Overview", icon: Wallet },
     { id: "appointments", label: "Appointments", icon: CalendarClock },
-    { id: "inventory", label: "Inventory", icon: Package },
+    { id: "inventory", label: "Supplies & Inventory", icon: Package },
   ];
 
   return (
     <header className="sticky top-0 z-30 bg-[#faf5fd]/90 backdrop-blur-lg border-b-2 border-[#ccaa79]/30 shadow-xs">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-4 flex items-center justify-between gap-4">
-        {/* Rounded Bank-Style Brand Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-3xl bg-gradient-to-tr from-[#5f0d7a] via-[#751194] to-[#ccaa79] flex items-center justify-center shrink-0 shadow-lg shadow-[#5f0d7a]/30 relative group">
+          <div className="w-12 h-12 rounded-3xl bg-gradient-to-tr from-[#5f0d7a] via-[#751194] to-[#ccaa79] flex items-center justify-center shrink-0 shadow-lg shadow-[#5f0d7a]/30 group">
             <CrossStar size={24} className="text-white drop-shadow-sm transition-transform group-hover:rotate-45" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#5f0d7a] uppercase leading-none">
-                Naturally <span className="text-[#ccaa79]">Nyla</span>
-              </h1>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#5f0d7a] uppercase leading-none">
+              Naturally <span className="text-[#ccaa79]">Nyla</span>
+            </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="inline-block w-2 h-2 rounded-full bg-[#ccaa79]" />
               <p className="text-[11px] font-black uppercase tracking-widest text-[#7a488e]">
-                Salon & Beauty Portal
+                Salon Business Suite
               </p>
             </div>
           </div>
@@ -370,7 +389,7 @@ function Header({ tab, setTab }) {
 
         <div className="hidden sm:flex items-center gap-2 bg-[#f2e2fa] border border-[#ccaa79]/50 rounded-full px-3.5 py-1.5">
           <Crown size={15} className="text-[#ccaa79]" strokeWidth={2.5} />
-          <span className="text-xs font-bold text-[#5f0d7a]">Pro Business Suite</span>
+          <span className="text-xs font-bold text-[#5f0d7a]">Financials & Bookings</span>
         </div>
       </div>
 
@@ -399,82 +418,37 @@ function Header({ tab, setTab }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Large Fintech Metric Bubbles                                       */
-/* ------------------------------------------------------------------ */
-
-function MetricBubble({ label, value, icon: Icon, tone = "purple", sub }) {
-  const tones = {
-    purple: {
-      bg: "bg-gradient-to-br from-[#5f0d7a] via-[#6f118e] to-[#450959] text-white shadow-[#5f0d7a]/30 border-2 border-[#ccaa79]/40",
-      chip: "bg-[#ccaa79] text-[#2c1704]",
-      sub: "text-[#f3e7fb]",
-      valueText: "text-white",
-      sparkleColor: "text-[#ccaa79]/60",
-    },
-    gold: {
-      bg: "bg-gradient-to-br from-[#ccaa79] via-[#d6b789] to-[#b7915b] text-[#2e1903] shadow-[#ccaa79]/35 border-2 border-[#5f0d7a]/25",
-      chip: "bg-[#5f0d7a] text-white",
-      sub: "text-[#4a2e0a]",
-      valueText: "text-[#2e1903]",
-      sparkleColor: "text-[#5f0d7a]/40",
-    },
-    whitePurple: {
-      bg: "bg-white border-2 border-[#e8d5f3] shadow-[#5f0d7a]/10",
-      chip: "bg-[#5f0d7a] text-white",
-      sub: "text-[#7a588b]",
-      valueText: "text-[#5f0d7a]",
-      sparkleColor: "text-[#ccaa79]",
-    },
-    whiteGold: {
-      bg: "bg-white border-2 border-[#eedcb7] shadow-[#ccaa79]/15",
-      chip: "bg-[#fbf2e3] text-[#936b28] border border-[#ccaa79]",
-      sub: "text-[#8e7454]",
-      valueText: "text-[#886221]",
-      sparkleColor: "text-[#5f0d7a]/40",
-    },
-  };
-  const t = tones[tone];
-
-  return (
-    <div className={`${t.bg} rounded-[32px] p-6 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[160px]`}>
-      <CrossStar size={48} className={`absolute -right-3 -top-3 ${t.sparkleColor} opacity-70`} />
-      <div className="flex items-center justify-between">
-        <div className={`w-11 h-11 rounded-2xl ${t.chip} flex items-center justify-center shadow-xs`}>
-          <Icon size={20} strokeWidth={2.5} />
-        </div>
-        <ArrowUpRight size={18} className="opacity-40" />
-      </div>
-      <div>
-        <p className="text-xs font-black uppercase tracking-wider opacity-85 mb-1">{label}</p>
-        <p className={`text-3xl sm:text-4xl font-black ${t.valueText} tracking-tight`}>{value}</p>
-        {sub && <p className={`text-xs font-bold ${t.sub} mt-1.5`}>{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Overview Tab                                                       */
 /* ------------------------------------------------------------------ */
 
-const emptyRevenueForm = { date: "", source: "", service: "", amount: "", method: PAYMENT_METHODS[0] };
+const emptyRevenueForm = { date: "", source: "", service: SERVICES[0], amount: "", method: PAYMENT_METHODS[0] };
 
-function OverviewTab({ totalRevenue, netProfit, totalAppointments, activeInventoryValue, revenue, setRevenue }) {
+function OverviewTab({
+  totalRevenue,
+  currentMonthRevenue,
+  prevMonthRevenue,
+  monthDiff,
+  monthDiffPct,
+  netProfit,
+  totalAppointments,
+  totalSupplyExpenses,
+  revenue,
+  setRevenue,
+  monthlyData,
+}) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyRevenueForm);
   const [confirmId, setConfirmId] = useState(null);
 
-  const sorted = useMemo(
-    () => [...revenue].sort((a, b) => new Date(b.date) - new Date(a.date)),
-    [revenue]
-  );
+  const sorted = useMemo(() => [...revenue].sort((a, b) => new Date(b.date) - new Date(a.date)), [revenue]);
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ ...emptyRevenueForm, date: new Date().toISOString().slice(0, 10), source: "", service: "" });
+    setForm({ ...emptyRevenueForm, date: new Date().toISOString().slice(0, 10), source: "" });
     setModalOpen(true);
   };
+
   const openEdit = (r) => {
     setEditing(r.id);
     setForm({ date: r.date, source: r.source, service: r.service, amount: r.amount, method: r.method });
@@ -497,31 +471,134 @@ function OverviewTab({ totalRevenue, netProfit, totalAppointments, activeInvento
     setConfirmId(null);
   };
 
+  const sortedMonths = Object.keys(monthlyData).sort().reverse();
+
   return (
     <div>
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <MetricBubble label="Total Gross" value={currency(totalRevenue)} icon={DollarSign} tone="purple" sub={`${revenue.length} transactions`} />
-        <MetricBubble label="Net Profit" value={currency(netProfit)} icon={TrendingUp} tone="gold" sub="Total after supplies" />
-        <MetricBubble label="Appointments" value={totalAppointments} icon={Calendar} tone="whitePurple" sub="All recorded visits" />
-        <MetricBubble label="Retail Goods" value={currency(activeInventoryValue)} icon={Package} tone="whiteGold" sub="Current shelf value" />
+      {/* Top Fintech Metric Bubbles */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Revenue */}
+        <div className="bg-gradient-to-br from-[#5f0d7a] via-[#6f118e] to-[#450959] text-white rounded-[32px] p-6 shadow-md border-2 border-[#ccaa79]/40 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          <CrossStar size={44} className="absolute -right-2 -top-2 text-[#ccaa79]/60 opacity-80" />
+          <div className="w-10 h-10 rounded-2xl bg-[#ccaa79] text-[#2c1704] flex items-center justify-center font-bold">
+            <DollarSign size={20} strokeWidth={2.6} />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-purple-200 mb-1">Total Revenue</p>
+            <p className="text-3xl sm:text-4xl font-black text-white tracking-tight">{currency(totalRevenue)}</p>
+            <p className="text-xs font-bold text-[#f2ddbe] mt-1">{revenue.length} transactions logged</p>
+          </div>
+        </div>
+
+        {/* This Month vs Last Month */}
+        <div className="bg-gradient-to-br from-[#ccaa79] via-[#d6b789] to-[#b7915b] text-[#2e1903] rounded-[32px] p-6 shadow-md border-2 border-[#5f0d7a]/25 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          <CrossStar size={44} className="absolute -right-2 -top-2 text-[#5f0d7a]/30 opacity-70" />
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-[#5f0d7a] text-white flex items-center justify-center font-bold">
+              <TrendingUp size={20} strokeWidth={2.6} />
+            </div>
+            {monthDiff >= 0 ? (
+              <span className="inline-flex items-center gap-1 bg-[#2e1903] text-[#ccaa79] px-2.5 py-1 rounded-full text-xs font-black">
+                <ArrowUpRight size={13} strokeWidth={3} /> {monthDiffPct ? `+${monthDiffPct}%` : "Up"}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 bg-rose-900 text-white px-2.5 py-1 rounded-full text-xs font-black">
+                <ArrowDownRight size={13} strokeWidth={3} /> {monthDiffPct ? `${monthDiffPct}%` : "Down"}
+              </span>
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-[#4a2e0a] mb-1">This Month</p>
+            <p className="text-3xl sm:text-4xl font-black text-[#2e1903] tracking-tight">{currency(currentMonthRevenue)}</p>
+            <p className="text-xs font-black text-[#50330d] mt-1">
+              {monthDiff >= 0 ? `+$${monthDiff.toFixed(0)} more than last month` : `-$${Math.abs(monthDiff).toFixed(0)} vs last month`}
+            </p>
+          </div>
+        </div>
+
+        {/* Net Profit */}
+        <div className="bg-white rounded-[32px] p-6 shadow-md border-2 border-[#eeddf4] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          <div className="w-10 h-10 rounded-2xl bg-[#f4ecfb] text-[#5f0d7a] flex items-center justify-center">
+            <Sparkles size={20} strokeWidth={2.4} />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-[#8b6999] mb-1">Net Earnings</p>
+            <p className="text-3xl font-black text-[#5f0d7a] tracking-tight">{currency(netProfit)}</p>
+            <p className="text-xs font-bold text-[#9d7da9] mt-1">After {currency(totalSupplyExpenses)} supplies</p>
+          </div>
+        </div>
+
+        {/* Appointments Count */}
+        <div className="bg-white rounded-[32px] p-6 shadow-md border-2 border-[#eeddf4] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          <div className="w-10 h-10 rounded-2xl bg-[#faf4ea] text-[#936b28] flex items-center justify-center">
+            <Calendar size={20} strokeWidth={2.4} />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-[#9f7d4e] mb-1">Appointments</p>
+            <p className="text-3xl font-black text-[#855e1c] tracking-tight">{totalAppointments}</p>
+            <p className="text-xs font-bold text-[#8e7454] mt-1">Clients on file</p>
+          </div>
+        </div>
       </div>
 
-      {/* Revenue Header & Action */}
+      {/* Monthly Performance Statement */}
+      {sortedMonths.length > 0 && (
+        <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-6 mb-8 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-black text-[#5f0d7a]">Monthly Performance Tracker</h3>
+              <p className="text-xs font-bold text-[#9f7ca6]">Month-over-month revenue growth</p>
+            </div>
+            <Badge tone="purple">{sortedMonths.length} Months Tracked</Badge>
+          </div>
+
+          <div className="divide-y divide-[#f7f0fb]">
+            {sortedMonths.map((ym, index) => {
+              const current = monthlyData[ym]?.revenue || 0;
+              const nextOlderMonthKey = sortedMonths[index + 1];
+              const older = nextOlderMonthKey ? monthlyData[nextOlderMonthKey]?.revenue || 0 : null;
+              const diff = older !== null ? current - older : null;
+              const pct = older && older > 0 ? ((diff / older) * 100).toFixed(0) : null;
+
+              return (
+                <div key={ym} className="py-3 flex items-center justify-between text-sm">
+                  <div>
+                    <p className="font-extrabold text-[#280533]">{formatMonthYear(ym)}</p>
+                    <p className="text-xs text-[#9f7ca6] font-bold">{monthlyData[ym]?.count} payments logged</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-[#5f0d7a] text-base">{currency(current)}</p>
+                    {diff !== null ? (
+                      <p className={`text-xs font-black inline-flex items-center gap-0.5 ${diff >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                        {diff >= 0 ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
+                        {diff >= 0 ? `+$${diff.toFixed(0)}` : `-$${Math.abs(diff).toFixed(0)}`} {pct ? `(${pct}%)` : ""}
+                      </p>
+                    ) : (
+                      <span className="text-[11px] text-[#ccaa79] font-bold">First recorded month</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Revenue Stream Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-2xl font-black text-[#5f0d7a]">Revenue Stream</h2>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#9f7ca6]">Incoming Cash & Transactions</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#9f7ca6]">Cash, Card & Online Client Payments</p>
         </div>
         <PillButton onClick={openAdd} variant="primary">
           <Plus size={16} strokeWidth={3} /> Log Revenue
         </PillButton>
       </div>
 
-      {/* Transactions Card Bubble */}
+      {/* Revenue List */}
       <div className="bg-white rounded-[32px] border-2 border-[#eedff5] shadow-md overflow-hidden">
         {sorted.length === 0 ? (
-          <EmptyState icon={DollarSign} title="No revenue logged yet" desc="Add your first client payment or product sale." />
+          <EmptyState icon={DollarSign} title="No revenue logged yet" desc="Completed appointments and manual sales will appear here." />
         ) : (
           <div className="divide-y-2 divide-[#faf3fc]">
             {sorted.map((r) => (
@@ -550,32 +627,31 @@ function OverviewTab({ totalRevenue, netProfit, totalAppointments, activeInvento
         )}
       </div>
 
-      {/* Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Update Transaction" : "Log New Income"} icon={DollarSign}>
+      {/* Revenue Edit/Add Modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Update Transaction" : "Log Income"} icon={DollarSign}>
         <form onSubmit={save}>
           <Field label="Payment Date">
             <input type="date" required className={inputCls} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
           </Field>
           <Field label="Client or Source">
             <input
-              list="revenue-sources"
               required
               placeholder="e.g. Maya L. or Product Sale"
               className={inputCls}
               value={form.source}
               onChange={(e) => setForm({ ...form, source: e.target.value })}
             />
-            <datalist id="revenue-sources">{REVENUE_SOURCES.map((s) => <option key={s} value={s} />)}</datalist>
           </Field>
-          <Field label="Service / Item Rendered">
+          <Field label="Service / Description">
             <input
-              list="revenue-services"
-              placeholder="e.g. Knotless Braids"
+              list="service-list"
+              required
+              placeholder="e.g. Retwist"
               className={inputCls}
               value={form.service}
               onChange={(e) => setForm({ ...form, service: e.target.value })}
             />
-            <datalist id="revenue-services">{SERVICES.map((s) => <option key={s} value={s} />)}</datalist>
+            <datalist id="service-list">{SERVICES.map((s) => <option key={s} value={s} />)}</datalist>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Amount ($)">
@@ -589,14 +665,14 @@ function OverviewTab({ totalRevenue, netProfit, totalAppointments, activeInvento
           </div>
           <div className="flex gap-3 mt-4">
             <PillButton type="button" variant="subtle" className="flex-1" onClick={() => setModalOpen(false)}>Cancel</PillButton>
-            <PillButton type="submit" variant="primary" className="flex-1">{editing ? "Update Log" : "Confirm Log"}</PillButton>
+            <PillButton type="submit" variant="primary" className="flex-1">{editing ? "Update Log" : "Confirm Entry"}</PillButton>
           </div>
         </form>
       </Modal>
 
       <ConfirmDialog
         open={!!confirmId}
-        message="This will remove the transaction from your overall business revenue calculation."
+        message="This record will be permanently deleted from your revenue history."
         onCancel={() => setConfirmId(null)}
         onConfirm={remove}
       />
@@ -608,7 +684,7 @@ function OverviewTab({ totalRevenue, netProfit, totalAppointments, activeInvento
 /* Appointments Tab                                                   */
 /* ------------------------------------------------------------------ */
 
-const emptyApptForm = { client: "", service: SERVICES[0], date: "", time: "", price: "", status: "Scheduled", notes: "" };
+const emptyApptForm = { client: "", service: SERVICES[0], date: "", time: "11:00", price: "", status: "Scheduled", notes: "" };
 
 const statusStyle = {
   Scheduled: { tone: "purple", icon: Clock },
@@ -616,7 +692,7 @@ const statusStyle = {
   Canceled: { tone: "red", icon: XCircle },
 };
 
-function AppointmentsTab({ appointments, setAppointments }) {
+function AppointmentsTab({ appointments, setAppointments, onPromptCompletion }) {
   const [view, setView] = useState("upcoming");
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -641,9 +717,10 @@ function AppointmentsTab({ appointments, setAppointments }) {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ ...emptyApptForm, date: today, time: "11:00" });
+    setForm({ ...emptyApptForm, date: today });
     setModalOpen(true);
   };
+
   const openEdit = (a) => {
     setEditing(a.id);
     setForm({ client: a.client, service: a.service, date: a.date, time: a.time, price: a.price, status: a.status, notes: a.notes || "" });
@@ -666,17 +743,13 @@ function AppointmentsTab({ appointments, setAppointments }) {
     setConfirmId(null);
   };
 
-  const markCompleted = (id) => {
-    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a)));
-  };
-
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <h2 className="text-2xl font-black text-[#5f0d7a]">Appointment Book</h2>
           <p className="text-xs font-bold uppercase tracking-wider text-[#9f7ca6]">
-            {filtered.length} {view === "upcoming" ? "Pending / Upcoming" : "Past / Completed"} Booking{filtered.length === 1 ? "" : "s"}
+            {filtered.length} {view === "upcoming" ? "Pending / Scheduled" : "Past / Completed"} Client{filtered.length === 1 ? "" : "s"}
           </p>
         </div>
         <PillButton onClick={openAdd} variant="primary">
@@ -684,7 +757,7 @@ function AppointmentsTab({ appointments, setAppointments }) {
         </PillButton>
       </div>
 
-      {/* Filter & Search Bar */}
+      {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="inline-flex bg-white border-2 border-[#eedff5] rounded-full p-1 shadow-xs w-fit">
           {["upcoming", "past"].map((v) => (
@@ -692,9 +765,7 @@ function AppointmentsTab({ appointments, setAppointments }) {
               key={v}
               onClick={() => setView(v)}
               className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
-                view === v
-                  ? "bg-[#5f0d7a] text-white shadow-sm"
-                  : "text-[#7b5c87] hover:text-[#5f0d7a]"
+                view === v ? "bg-[#5f0d7a] text-white shadow-sm" : "text-[#7b5c87] hover:text-[#5f0d7a]"
               }`}
             >
               {v}
@@ -716,7 +787,7 @@ function AppointmentsTab({ appointments, setAppointments }) {
         <EmptyState
           icon={CalendarClock}
           title={view === "upcoming" ? "No upcoming bookings" : "No past bookings"}
-          desc={query ? "Try searching for a different client." : "Add your next client to the calendar."}
+          desc={query ? "No client matches your search." : "Add a client appointment to keep your schedule organized."}
         />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
@@ -755,10 +826,18 @@ function AppointmentsTab({ appointments, setAppointments }) {
                 )}
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#f4eaf7]">
-                  <p className="text-2xl font-black text-[#5f0d7a]">{currency(a.price)}</p>
-                  <div className="flex gap-2">
+                  <div>
+                    <p className="text-2xl font-black text-[#5f0d7a]">{currency(a.price)}</p>
+                    {a.tip ? <p className="text-[11px] font-bold text-emerald-600">+${a.tip} tip</p> : null}
+                  </div>
+                  <div className="flex items-center gap-2">
                     {a.status !== "Completed" && (
-                      <IconCircleButton icon={CheckCircle2} variant="gold" onClick={() => markCompleted(a.id)} title="Mark as Completed" />
+                      <button
+                        onClick={() => onPromptCompletion(a)}
+                        className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-black transition active:scale-95 shadow-2xs"
+                      >
+                        <CheckCircle2 size={14} strokeWidth={2.8} /> Complete & Pay
+                      </button>
                     )}
                     <IconCircleButton icon={Pencil} variant="purple" onClick={() => openEdit(a)} title="Edit" />
                     <IconCircleButton icon={Trash2} variant="danger" onClick={() => setConfirmId(a.id)} title="Delete" />
@@ -770,10 +849,10 @@ function AppointmentsTab({ appointments, setAppointments }) {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Appointment" : "New Appointment"} icon={CalendarCheck2}>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Appointment" : "New Booking"} icon={CalendarCheck2}>
         <form onSubmit={save}>
           <Field label="Client Full Name">
-            <input required className={inputCls} value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="e.g. Amara Johnson" />
+            <input required className={inputCls} value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="e.g. Maya Lynn" />
           </Field>
           <Field label="Selected Service">
             <select className={inputCls} value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })}>
@@ -789,28 +868,28 @@ function AppointmentsTab({ appointments, setAppointments }) {
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Fee ($)">
+            <Field label="Base Price ($)">
               <input type="number" min="0" step="0.01" required className={inputCls} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
             </Field>
-            <Field label="Booking Status">
+            <Field label="Status">
               <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                 {Object.keys(statusStyle).map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </Field>
           </div>
-          <Field label="Stylist Reminders / Notes">
-            <textarea rows={2} className={inputCls} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Hair texture, preferred parts, extensions..." />
+          <Field label="Client Reminders / Notes">
+            <textarea rows={2} className={inputCls} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Parts preference, hair length, scalp needs..." />
           </Field>
           <div className="flex gap-3 mt-4">
             <PillButton type="button" variant="subtle" className="flex-1" onClick={() => setModalOpen(false)}>Cancel</PillButton>
-            <PillButton type="submit" variant="primary" className="flex-1">{editing ? "Update Appointment" : "Confirm Booking"}</PillButton>
+            <PillButton type="submit" variant="primary" className="flex-1">{editing ? "Update Appointment" : "Save Booking"}</PillButton>
           </div>
         </form>
       </Modal>
 
       <ConfirmDialog
         open={!!confirmId}
-        message="This scheduled appointment will be permanently deleted."
+        message="This appointment will be permanently deleted."
         onCancel={() => setConfirmId(null)}
         onConfirm={remove}
       />
@@ -819,36 +898,135 @@ function AppointmentsTab({ appointments, setAppointments }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Inventory Tab                                                      */
+/* Complete Appointment & Add Tip Modal                               */
 /* ------------------------------------------------------------------ */
 
-const emptyProductForm = { name: "", category: INVENTORY_CATEGORIES[0], stock: "", unitCost: "", sellingPrice: "" };
-const LOW_STOCK = 5;
+function CompleteAppointmentModal({ appt, onClose, onConfirm }) {
+  const [tip, setTip] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const basePrice = Number(appt.price) || 0;
+  const tipAmount = Number(tip) || 0;
+  const totalAmount = basePrice + tipAmount;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onConfirm({
+      apptId: appt.id,
+      tip: tipAmount,
+      paymentMethod,
+      date,
+    });
+  };
+
+  return (
+    <Modal open={true} onClose={onClose} title="Complete & Collect Payment" icon={CheckCircle2}>
+      <form onSubmit={handleSubmit}>
+        <div className="bg-[#faf3fd] p-4 rounded-2xl border border-[#f1e2f7] mb-4">
+          <p className="font-extrabold text-[#5f0d7a] text-lg">{appt.client}</p>
+          <p className="text-xs font-black text-[#ccaa79] uppercase">{appt.service}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <div className="bg-white border-2 border-[#eedff5] p-3 rounded-2xl text-center">
+            <p className="text-[10px] font-black uppercase text-[#9f7ca6]">Base Service</p>
+            <p className="text-xl font-black text-[#5f0d7a]">{currency(basePrice)}</p>
+          </div>
+          <div className="bg-[#fbf7ee] border-2 border-[#f6e5c8] p-3 rounded-2xl text-center">
+            <p className="text-[10px] font-black uppercase text-[#9f7d4e]">Total + Tip</p>
+            <p className="text-xl font-black text-[#855e1c]">{currency(totalAmount)}</p>
+          </div>
+        </div>
+
+        <Field label="Add Tip ($)">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className={inputCls}
+            placeholder="0.00"
+            value={tip}
+            onChange={(e) => setTip(e.target.value)}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Payment Method">
+            <select className={inputCls} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </Field>
+          <Field label="Date Received">
+            <input type="date" required className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className="flex gap-3 mt-4">
+          <PillButton type="button" variant="subtle" className="flex-1" onClick={onClose}>Cancel</PillButton>
+          <PillButton type="submit" variant="primary" className="flex-1">
+            Log {currency(totalAmount)}
+          </PillButton>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Inventory & Supply Expenses Tab                                    */
+/* ------------------------------------------------------------------ */
+
+const emptySupplyForm = { name: "", category: INVENTORY_CATEGORIES[0], stock: "", minStock: "2", unitCost: "", totalSpent: "" };
 
 function InventoryTab({ inventory, setInventory }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyProductForm);
+  const [form, setForm] = useState(emptySupplyForm);
   const [confirmId, setConfirmId] = useState(null);
+  const [restockItem, setRestockItem] = useState(null);
+  const [restockUnits, setRestockUnits] = useState("1");
 
   const sorted = useMemo(() => [...inventory].sort((a, b) => a.name.localeCompare(b.name)), [inventory]);
-  const lowStockCount = inventory.filter((p) => p.stock < LOW_STOCK).length;
+  const needsRestockList = inventory.filter((p) => Number(p.stock) <= Number(p.minStock || 2));
+  const totalSpentAllSupplies = useMemo(() => inventory.reduce((s, p) => s + Number(p.totalSpent || 0), 0), [inventory]);
 
   const openAdd = () => {
     setEditing(null);
-    setForm(emptyProductForm);
+    setForm(emptySupplyForm);
     setModalOpen(true);
   };
+
   const openEdit = (p) => {
     setEditing(p.id);
-    setForm({ name: p.name, category: p.category, stock: p.stock, unitCost: p.unitCost, sellingPrice: p.sellingPrice });
+    setForm({
+      name: p.name,
+      category: p.category,
+      stock: p.stock,
+      minStock: p.minStock || "2",
+      unitCost: p.unitCost || "",
+      totalSpent: p.totalSpent || "",
+    });
     setModalOpen(true);
   };
 
   const save = (e) => {
     e.preventDefault();
-    if (!form.name || form.stock === "" || form.unitCost === "" || form.sellingPrice === "") return;
-    const payload = { ...form, stock: Number(form.stock), unitCost: Number(form.unitCost), sellingPrice: Number(form.sellingPrice) };
+    if (!form.name || form.stock === "") return;
+
+    const unitC = Number(form.unitCost) || 0;
+    const stockQty = Number(form.stock) || 0;
+    const spentTotal = form.totalSpent !== "" ? Number(form.totalSpent) : unitC * stockQty;
+
+    const payload = {
+      name: form.name,
+      category: form.category,
+      stock: stockQty,
+      minStock: Number(form.minStock) || 2,
+      unitCost: unitC,
+      totalSpent: spentTotal,
+    };
+
     if (editing) {
       setInventory((prev) => prev.map((p) => (p.id === editing ? { ...p, ...payload } : p)));
     } else {
@@ -863,44 +1041,67 @@ function InventoryTab({ inventory, setInventory }) {
   };
 
   const bump = (id, delta) => {
-    setInventory((prev) => prev.map((p) => (p.id === id ? { ...p, stock: Math.max(0, p.stock + delta) } : p)));
+    setInventory((prev) => prev.map((p) => (p.id === id ? { ...p, stock: Math.max(0, Number(p.stock) + delta) } : p)));
+  };
+
+  const handleRestockSubmit = (e) => {
+    e.preventDefault();
+    const addedUnits = Number(restockUnits) || 0;
+    if (!restockItem || addedUnits <= 0) return;
+
+    const costToAdd = addedUnits * (Number(restockItem.unitCost) || 0);
+
+    setInventory((prev) =>
+      prev.map((p) =>
+        p.id === restockItem.id
+          ? {
+              ...p,
+              stock: Number(p.stock) + addedUnits,
+              totalSpent: Number(p.totalSpent || 0) + costToAdd,
+            }
+          : p
+      )
+    );
+    setRestockItem(null);
+    setRestockUnits("1");
   };
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-black text-[#5f0d7a]">Salon Inventory</h2>
+          <h2 className="text-2xl font-black text-[#5f0d7a]">Supplies & Restock Tracker</h2>
           <p className="text-xs font-bold uppercase tracking-wider text-[#9f7ca6]">
-            {inventory.length} Stocked Products
-            {lowStockCount > 0 && (
-              <span className="text-amber-600 font-black"> · {lowStockCount} Need Restocking</span>
+            Total Supply Costs: <span className="text-[#5f0d7a]">{currency(totalSpentAllSupplies)}</span>
+            {needsRestockList.length > 0 && (
+              <span className="text-amber-600 font-black"> · {needsRestockList.length} items need restock</span>
             )}
           </p>
         </div>
         <PillButton onClick={openAdd} variant="primary">
-          <Plus size={16} strokeWidth={3} /> Add Product
+          <Plus size={16} strokeWidth={3} /> Add New Supply Item
         </PillButton>
       </div>
 
       {sorted.length === 0 ? (
-        <EmptyState icon={Package} title="No inventory found" desc="Add products or tools to track in-house stock." />
+        <EmptyState icon={ShoppingCart} title="No supplies entered" desc="Keep track of hair products, tools, and what you need to rebuy." />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {sorted.map((p) => {
-            const low = p.stock < LOW_STOCK;
+            const isLow = Number(p.stock) <= Number(p.minStock || 2);
             return (
               <div
                 key={p.id}
                 className="bg-white rounded-[32px] border-2 border-[#eedff5] p-5 shadow-sm hover:border-[#ccaa79] transition flex flex-col justify-between gap-4 relative overflow-hidden"
               >
-                {low && (
+                {isLow && (
                   <div className="absolute top-3 right-3">
                     <span className="flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-2xs">
-                      <AlertTriangle size={11} strokeWidth={3} /> Low
+                      <AlertTriangle size={11} strokeWidth={3} /> Needs Restock
                     </span>
                   </div>
                 )}
+
                 <div>
                   <Badge tone="gold">{p.category}</Badge>
                   <p className="font-black text-[#280533] text-lg mt-2 truncate">{p.name}</p>
@@ -912,12 +1113,12 @@ function InventoryTab({ inventory, setInventory }) {
                     <p className="font-black text-[#5f0d7a] text-sm">{currency(p.unitCost)}</p>
                   </div>
                   <div className="bg-[#fbf7ee] border border-[#f6e5c8] rounded-2xl py-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-[#9f7d4e]">Retail</p>
-                    <p className="font-black text-[#855e1c] text-sm">{currency(p.sellingPrice)}</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-[#9f7d4e]">Total Spent</p>
+                    <p className="font-black text-[#855e1c] text-sm">{currency(p.totalSpent)}</p>
                   </div>
                 </div>
 
-                {/* Fintech Counter Bubble */}
+                {/* Stock Counter */}
                 <div className="flex items-center justify-between bg-gradient-to-r from-[#5f0d7a] to-[#7f18a2] rounded-2xl p-2 shadow-xs">
                   <button
                     onClick={() => bump(p.id, -1)}
@@ -926,8 +1127,10 @@ function InventoryTab({ inventory, setInventory }) {
                     <ChevronDown size={18} strokeWidth={3} />
                   </button>
                   <div className="text-center">
-                    <p className={`font-black text-xl leading-none ${low ? "text-[#fadb9e]" : "text-white"}`}>{p.stock}</p>
-                    <p className="text-[9px] font-black text-white/70 uppercase tracking-widest mt-0.5">Units</p>
+                    <p className={`font-black text-xl leading-none ${isLow ? "text-[#fadb9e]" : "text-white"}`}>{p.stock}</p>
+                    <p className="text-[9px] font-black text-white/70 uppercase tracking-widest mt-0.5">
+                      {isLow ? `Reorder (≤${p.minStock})` : "In stock"}
+                    </p>
                   </div>
                   <button
                     onClick={() => bump(p.id, 1)}
@@ -937,9 +1140,17 @@ function InventoryTab({ inventory, setInventory }) {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#f4eaf7]">
-                  <IconCircleButton icon={Pencil} variant="purple" onClick={() => openEdit(p)} title="Edit Item" />
-                  <IconCircleButton icon={Trash2} variant="danger" onClick={() => setConfirmId(p.id)} title="Delete Item" />
+                <div className="flex items-center justify-between pt-2 border-t border-[#f4eaf7]">
+                  <button
+                    onClick={() => { setRestockItem(p); setRestockUnits("1"); }}
+                    className="inline-flex items-center gap-1 text-xs font-black text-[#ccaa79] hover:text-[#b28c55]"
+                  >
+                    <RefreshCw size={13} strokeWidth={2.5} /> Log Restock
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <IconCircleButton icon={Pencil} variant="purple" onClick={() => openEdit(p)} title="Edit Item" />
+                    <IconCircleButton icon={Trash2} variant="danger" onClick={() => setConfirmId(p.id)} title="Delete Item" />
+                  </div>
                 </div>
               </div>
             );
@@ -947,37 +1158,68 @@ function InventoryTab({ inventory, setInventory }) {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Update Product" : "New Inventory Item"} icon={Package}>
+      {/* Add / Edit Supply Item Modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Supply Item" : "Add Supply / Expense"} icon={Package}>
         <form onSubmit={save}>
-          <Field label="Product Name">
-            <input required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Edge Control Wax" />
+          <Field label="Supply Name">
+            <input required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Edge Control, Pre-stretched Hair" />
           </Field>
           <Field label="Category">
             <select className={inputCls} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               {INVENTORY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Starting Unit Count">
-            <input type="number" min="0" required className={inputCls} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Cost to You ($)">
-              <input type="number" min="0" step="0.01" required className={inputCls} value={form.unitCost} onChange={(e) => setForm({ ...form, unitCost: e.target.value })} />
+            <Field label="Current Units On Hand">
+              <input type="number" min="0" required className={inputCls} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
             </Field>
-            <Field label="Client Sell Price ($)">
-              <input type="number" min="0" step="0.01" required className={inputCls} value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} />
+            <Field label="Restock Alert (When ≤)">
+              <input type="number" min="0" required className={inputCls} value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Cost per Unit ($)">
+              <input type="number" min="0" step="0.01" className={inputCls} value={form.unitCost} onChange={(e) => setForm({ ...form, unitCost: e.target.value })} placeholder="e.g. 5.50" />
+            </Field>
+            <Field label="Total Spent So Far ($)">
+              <input type="number" min="0" step="0.01" className={inputCls} value={form.totalSpent} onChange={(e) => setForm({ ...form, totalSpent: e.target.value })} placeholder="Optional override" />
             </Field>
           </div>
           <div className="flex gap-3 mt-4">
             <PillButton type="button" variant="subtle" className="flex-1" onClick={() => setModalOpen(false)}>Cancel</PillButton>
-            <PillButton type="submit" variant="primary" className="flex-1">{editing ? "Save Updates" : "Add to Stock"}</PillButton>
+            <PillButton type="submit" variant="primary" className="flex-1">{editing ? "Update Supply" : "Save Item"}</PillButton>
           </div>
         </form>
       </Modal>
 
+      {/* Quick Restock Purchase Modal */}
+      {restockItem && (
+        <Modal open={true} onClose={() => setRestockItem(null)} title={`Restock ${restockItem.name}`} icon={RefreshCw}>
+          <form onSubmit={handleRestockSubmit}>
+            <p className="text-xs text-[#7e5d8a] font-bold mb-4">
+              Enter how many units you just bought. If you have a unit cost recorded ({currency(restockItem.unitCost)}), it will automatically add to your total supply expenses.
+            </p>
+            <Field label="Units Purchased">
+              <input
+                type="number"
+                min="1"
+                required
+                className={inputCls}
+                value={restockUnits}
+                onChange={(e) => setRestockUnits(e.target.value)}
+              />
+            </Field>
+            <div className="flex gap-3 mt-4">
+              <PillButton type="button" variant="subtle" className="flex-1" onClick={() => setRestockItem(null)}>Cancel</PillButton>
+              <PillButton type="submit" variant="gold" className="flex-1">Add to Stock</PillButton>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       <ConfirmDialog
         open={!!confirmId}
-        message="This product will be permanently removed from your salon stock list."
+        message="This item will be permanently removed from your supply tracker."
         onCancel={() => setConfirmId(null)}
         onConfirm={remove}
       />
@@ -986,7 +1228,7 @@ function InventoryTab({ inventory, setInventory }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Empty State Bubble                                                 */
+/* Empty State Component                                              */
 /* ------------------------------------------------------------------ */
 
 function EmptyState({ icon: Icon, title, desc }) {
