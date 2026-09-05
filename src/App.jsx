@@ -3,7 +3,8 @@ import {
   Plus, Pencil, Trash2, X, DollarSign, Calendar, Package, TrendingUp,
   TrendingDown, Search, ChevronUp, ChevronDown, CheckCircle2, Clock, XCircle,
   AlertTriangle, Sparkles, Wallet, CalendarClock, CalendarCheck2,
-  StickyNote, Crown, ArrowUpRight, ArrowDownRight, ShoppingCart, RefreshCw
+  StickyNote, Crown, ArrowUpRight, ArrowDownRight, ShoppingCart, RefreshCw,
+  BarChart3, Award
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -26,6 +27,13 @@ const formatMonthYear = (yearMonthStr) => {
   const [y, m] = yearMonthStr.split("-").map(Number);
   const d = new Date(y, m - 1, 1);
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+};
+
+const formatShortMonth = (yearMonthStr) => {
+  if (!yearMonthStr) return "";
+  const [y, m] = yearMonthStr.split("-").map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 };
 
 const to12h = (t) => {
@@ -112,7 +120,7 @@ function useLocalState(key, initialValue) {
 }
 
 const PillButton = ({ children, onClick, variant = "primary", className = "", type = "button", disabled }) => {
-  const base = "inline-flex items-center justify-center gap-2 rounded-full font-bold transition-all active:scale-95 disabled:opacity-40 shadow-sm";
+  const base = "inline-flex items-center justify-center gap-2 rounded-full font-bold transition-all active:scale-95 disabled:opacity-40 shadow-sm cursor-pointer";
   const variants = {
     primary: "bg-gradient-to-r from-[#5f0d7a] to-[#7b149d] text-white hover:from-[#4d0963] hover:to-[#681085] shadow-[#5f0d7a]/25",
     gold: "bg-gradient-to-r from-[#ccaa79] to-[#dfc399] text-[#341e05] hover:brightness-105 shadow-[#ccaa79]/30",
@@ -139,7 +147,7 @@ const IconCircleButton = ({ icon: Icon, onClick, variant = "purple", size = "sm"
       type="button"
       title={title}
       onClick={onClick}
-      className={`${sizes[size]} ${variants[variant]} rounded-full flex items-center justify-center transition active:scale-90 shrink-0 shadow-2xs`}
+      className={`${sizes[size]} ${variants[variant]} rounded-full flex items-center justify-center transition active:scale-90 shrink-0 shadow-2xs cursor-pointer`}
     >
       <Icon size={size === "sm" ? 15 : 18} strokeWidth={2.4} />
     </button>
@@ -180,7 +188,7 @@ function Modal({ open, onClose, title, children, icon: Icon }) {
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-[#f4ecfb] text-[#5f0d7a] flex items-center justify-center hover:bg-[#ebdcf6] transition active:scale-90"
+            className="w-9 h-9 rounded-full bg-[#f4ecfb] text-[#5f0d7a] flex items-center justify-center hover:bg-[#ebdcf6] transition active:scale-90 cursor-pointer"
           >
             <X size={18} strokeWidth={2.5} />
           </button>
@@ -230,12 +238,10 @@ function ConfirmDialog({ open, message, onCancel, onConfirm }) {
 export default function App() {
   const [tab, setTab] = useState("overview");
 
-  // Clean empty state defaults (v2 keys automatically ignore old demo clients)
   const [revenue, setRevenue] = useLocalState("nn_revenue_v2", []);
   const [appointments, setAppointments] = useLocalState("nn_appointments_v2", []);
   const [inventory, setInventory] = useLocalState("nn_inventory_v2", []);
 
-  // Completion modal state for logging tip & marking complete
   const [completingAppt, setCompletingAppt] = useState(null);
 
   /* Calculations */
@@ -247,7 +253,7 @@ export default function App() {
   const netProfit = totalRevenue - totalSupplyExpenses;
   const totalAppointments = appointments.length;
 
-  /* Monthly Revenue Breakdown & Comparison */
+  /* Monthly Revenue Grouping */
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -270,7 +276,7 @@ export default function App() {
   const monthDiff = currentMonthRevenue - prevMonthRevenue;
   const monthDiffPct = prevMonthRevenue > 0 ? ((monthDiff / prevMonthRevenue) * 100).toFixed(0) : null;
 
-  /* Auto-transfer completed appointment to revenue */
+  /* Finalize appointment completion & tip */
   const handleFinalizeCompletion = ({ apptId, tip, paymentMethod, date }) => {
     const appt = appointments.find((a) => a.id === apptId);
     if (!appt) return;
@@ -279,12 +285,10 @@ export default function App() {
     const tipVal = Number(tip) || 0;
     const finalAmount = base + tipVal;
 
-    // 1. Mark appointment as completed
     setAppointments((prev) =>
       prev.map((a) => (a.id === apptId ? { ...a, status: "Completed", tip: tipVal } : a))
     );
 
-    // 2. Add directly to revenue
     const newRev = {
       id: uid(),
       date: date || new Date().toISOString().slice(0, 10),
@@ -309,7 +313,6 @@ export default function App() {
         ::selection { background: #ccaa79; color: #2e083c; }
       `}</style>
 
-      {/* Decorative Cross Stars & Ambient Gradients */}
       <BackgroundStars />
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#5f0d7a]/10 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-1/3 left-10 w-96 h-96 bg-[#ccaa79]/20 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -321,16 +324,17 @@ export default function App() {
           <OverviewTab
             totalRevenue={totalRevenue}
             currentMonthRevenue={currentMonthRevenue}
-            prevMonthRevenue={prevMonthRevenue}
             monthDiff={monthDiff}
             monthDiffPct={monthDiffPct}
             netProfit={netProfit}
             totalAppointments={totalAppointments}
-            totalSupplyExpenses={totalSupplyExpenses}
             revenue={revenue}
             setRevenue={setRevenue}
-            monthlyData={monthlyData}
+            onOpenPerformance={() => setTab("performance")}
           />
+        )}
+        {tab === "performance" && (
+          <PerformanceTab monthlyData={monthlyData} revenue={revenue} />
         )}
         {tab === "appointments" && (
           <AppointmentsTab
@@ -344,7 +348,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Complete & Tip Modal */}
       {completingAppt && (
         <CompleteAppointmentModal
           appt={completingAppt}
@@ -363,6 +366,7 @@ export default function App() {
 function Header({ tab, setTab }) {
   const items = [
     { id: "overview", label: "Overview", icon: Wallet },
+    { id: "performance", label: "Monthly Tracker", icon: BarChart3 },
     { id: "appointments", label: "Appointments", icon: CalendarClock },
     { id: "inventory", label: "Supplies & Inventory", icon: Package },
   ];
@@ -389,7 +393,7 @@ function Header({ tab, setTab }) {
 
         <div className="hidden sm:flex items-center gap-2 bg-[#f2e2fa] border border-[#ccaa79]/50 rounded-full px-3.5 py-1.5">
           <Crown size={15} className="text-[#ccaa79]" strokeWidth={2.5} />
-          <span className="text-xs font-bold text-[#5f0d7a]">Financials & Bookings</span>
+          <span className="text-xs font-bold text-[#5f0d7a]">Pro Hair Financials</span>
         </div>
       </div>
 
@@ -401,7 +405,7 @@ function Header({ tab, setTab }) {
             <button
               key={it.id}
               onClick={() => setTab(it.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-extrabold whitespace-nowrap transition-all active:scale-95 ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-extrabold whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
                 active
                   ? "bg-gradient-to-r from-[#5f0d7a] to-[#7e14a0] text-white shadow-md shadow-[#5f0d7a]/30 ring-2 ring-[#ccaa79]/40"
                   : "bg-white text-[#5f0d7a] border-2 border-[#eedef5] hover:border-[#ccaa79]"
@@ -426,15 +430,13 @@ const emptyRevenueForm = { date: "", source: "", service: SERVICES[0], amount: "
 function OverviewTab({
   totalRevenue,
   currentMonthRevenue,
-  prevMonthRevenue,
   monthDiff,
   monthDiffPct,
   netProfit,
   totalAppointments,
-  totalSupplyExpenses,
   revenue,
   setRevenue,
-  monthlyData,
+  onOpenPerformance,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -471,13 +473,9 @@ function OverviewTab({
     setConfirmId(null);
   };
 
-  const sortedMonths = Object.keys(monthlyData).sort().reverse();
-
   return (
     <div>
-      {/* Top Fintech Metric Bubbles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Total Revenue */}
         <div className="bg-gradient-to-br from-[#5f0d7a] via-[#6f118e] to-[#450959] text-white rounded-[32px] p-6 shadow-md border-2 border-[#ccaa79]/40 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <CrossStar size={44} className="absolute -right-2 -top-2 text-[#ccaa79]/60 opacity-80" />
           <div className="w-10 h-10 rounded-2xl bg-[#ccaa79] text-[#2c1704] flex items-center justify-center font-bold">
@@ -490,8 +488,10 @@ function OverviewTab({
           </div>
         </div>
 
-        {/* This Month vs Last Month */}
-        <div className="bg-gradient-to-br from-[#ccaa79] via-[#d6b789] to-[#b7915b] text-[#2e1903] rounded-[32px] p-6 shadow-md border-2 border-[#5f0d7a]/25 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+        <div
+          onClick={onOpenPerformance}
+          className="bg-gradient-to-br from-[#ccaa79] via-[#d6b789] to-[#b7915b] text-[#2e1903] rounded-[32px] p-6 shadow-md border-2 border-[#5f0d7a]/25 relative overflow-hidden flex flex-col justify-between min-h-[160px] cursor-pointer hover:brightness-105 transition"
+        >
           <CrossStar size={44} className="absolute -right-2 -top-2 text-[#5f0d7a]/30 opacity-70" />
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-2xl bg-[#5f0d7a] text-white flex items-center justify-center font-bold">
@@ -511,12 +511,11 @@ function OverviewTab({
             <p className="text-xs font-black uppercase tracking-wider text-[#4a2e0a] mb-1">This Month</p>
             <p className="text-3xl sm:text-4xl font-black text-[#2e1903] tracking-tight">{currency(currentMonthRevenue)}</p>
             <p className="text-xs font-black text-[#50330d] mt-1">
-              {monthDiff >= 0 ? `+$${monthDiff.toFixed(0)} more than last month` : `-$${Math.abs(monthDiff).toFixed(0)} vs last month`}
+              {monthDiff >= 0 ? `+$${monthDiff.toFixed(0)} vs last month →` : `-$${Math.abs(monthDiff).toFixed(0)} vs last month →`}
             </p>
           </div>
         </div>
 
-        {/* Net Profit */}
         <div className="bg-white rounded-[32px] p-6 shadow-md border-2 border-[#eeddf4] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="w-10 h-10 rounded-2xl bg-[#f4ecfb] text-[#5f0d7a] flex items-center justify-center">
             <Sparkles size={20} strokeWidth={2.4} />
@@ -524,11 +523,10 @@ function OverviewTab({
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-[#8b6999] mb-1">Net Earnings</p>
             <p className="text-3xl font-black text-[#5f0d7a] tracking-tight">{currency(netProfit)}</p>
-            <p className="text-xs font-bold text-[#9d7da9] mt-1">After {currency(totalSupplyExpenses)} supplies</p>
+            <p className="text-xs font-bold text-[#9d7da9] mt-1">Total after supplies</p>
           </div>
         </div>
 
-        {/* Appointments Count */}
         <div className="bg-white rounded-[32px] p-6 shadow-md border-2 border-[#eeddf4] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="w-10 h-10 rounded-2xl bg-[#faf4ea] text-[#936b28] flex items-center justify-center">
             <Calendar size={20} strokeWidth={2.4} />
@@ -536,55 +534,11 @@ function OverviewTab({
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-[#9f7d4e] mb-1">Appointments</p>
             <p className="text-3xl font-black text-[#855e1c] tracking-tight">{totalAppointments}</p>
-            <p className="text-xs font-bold text-[#8e7454] mt-1">Clients on file</p>
+            <p className="text-xs font-bold text-[#8e7454] mt-1">Bookings on file</p>
           </div>
         </div>
       </div>
 
-      {/* Monthly Performance Statement */}
-      {sortedMonths.length > 0 && (
-        <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-6 mb-8 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-black text-[#5f0d7a]">Monthly Performance Tracker</h3>
-              <p className="text-xs font-bold text-[#9f7ca6]">Month-over-month revenue growth</p>
-            </div>
-            <Badge tone="purple">{sortedMonths.length} Months Tracked</Badge>
-          </div>
-
-          <div className="divide-y divide-[#f7f0fb]">
-            {sortedMonths.map((ym, index) => {
-              const current = monthlyData[ym]?.revenue || 0;
-              const nextOlderMonthKey = sortedMonths[index + 1];
-              const older = nextOlderMonthKey ? monthlyData[nextOlderMonthKey]?.revenue || 0 : null;
-              const diff = older !== null ? current - older : null;
-              const pct = older && older > 0 ? ((diff / older) * 100).toFixed(0) : null;
-
-              return (
-                <div key={ym} className="py-3 flex items-center justify-between text-sm">
-                  <div>
-                    <p className="font-extrabold text-[#280533]">{formatMonthYear(ym)}</p>
-                    <p className="text-xs text-[#9f7ca6] font-bold">{monthlyData[ym]?.count} payments logged</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-black text-[#5f0d7a] text-base">{currency(current)}</p>
-                    {diff !== null ? (
-                      <p className={`text-xs font-black inline-flex items-center gap-0.5 ${diff >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
-                        {diff >= 0 ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
-                        {diff >= 0 ? `+$${diff.toFixed(0)}` : `-$${Math.abs(diff).toFixed(0)}`} {pct ? `(${pct}%)` : ""}
-                      </p>
-                    ) : (
-                      <span className="text-[11px] text-[#ccaa79] font-bold">First recorded month</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Revenue Stream Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-2xl font-black text-[#5f0d7a]">Revenue Stream</h2>
@@ -595,7 +549,6 @@ function OverviewTab({
         </PillButton>
       </div>
 
-      {/* Revenue List */}
       <div className="bg-white rounded-[32px] border-2 border-[#eedff5] shadow-md overflow-hidden">
         {sorted.length === 0 ? (
           <EmptyState icon={DollarSign} title="No revenue logged yet" desc="Completed appointments and manual sales will appear here." />
@@ -627,7 +580,6 @@ function OverviewTab({
         )}
       </div>
 
-      {/* Revenue Edit/Add Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Update Transaction" : "Log Income"} icon={DollarSign}>
         <form onSubmit={save}>
           <Field label="Payment Date">
@@ -676,6 +628,209 @@ function OverviewTab({
         onCancel={() => setConfirmId(null)}
         onConfirm={remove}
       />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Dedicated Performance & Bar Graph Tab                              */
+/* ------------------------------------------------------------------ */
+
+function PerformanceTab({ monthlyData, revenue }) {
+  const sortedMonthsChronological = useMemo(() => Object.keys(monthlyData).sort(), [monthlyData]);
+  const sortedMonthsNewestFirst = useMemo(() => Object.keys(monthlyData).sort().reverse(), [monthlyData]);
+
+  const maxMonthlyRevenue = useMemo(() => {
+    const values = Object.values(monthlyData).map((m) => m.revenue);
+    return Math.max(...values, 100);
+  }, [monthlyData]);
+
+  const bestMonth = useMemo(() => {
+    let best = null;
+    let highest = 0;
+    Object.entries(monthlyData).forEach(([k, v]) => {
+      if (v.revenue > highest) {
+        highest = v.revenue;
+        best = k;
+      }
+    });
+    return { month: best, revenue: highest };
+  }, [monthlyData]);
+
+  const avgMonthlyRevenue = useMemo(() => {
+    const monthsCount = sortedMonthsChronological.length;
+    if (monthsCount === 0) return 0;
+    const total = Object.values(monthlyData).reduce((s, v) => s + v.revenue, 0);
+    return total / monthsCount;
+  }, [monthlyData, sortedMonthsChronological]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-black text-[#5f0d7a]">Monthly Performance Tracker</h2>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#9f7ca6]">
+            Visual Revenue Trends & Month-by-Month Analytics
+          </p>
+        </div>
+      </div>
+
+      {sortedMonthsChronological.length === 0 ? (
+        <EmptyState
+          icon={BarChart3}
+          title="No Monthly Data Available"
+          desc="Log appointments or payments in your revenue stream to generate visual bar graphs and growth trends."
+        />
+      ) : (
+        <>
+          {/* Key Metric Highlights */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#5f0d7a] to-[#8c1ba8] text-[#ccaa79] flex items-center justify-center shrink-0 shadow-sm">
+                <Award size={22} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#9f7ca6]">Best Month</p>
+                <p className="text-xl font-black text-[#5f0d7a]">{currency(bestMonth.revenue)}</p>
+                <p className="text-xs font-bold text-[#ccaa79]">{formatMonthYear(bestMonth.month)}</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#faf4ea] text-[#936b28] flex items-center justify-center shrink-0">
+                <TrendingUp size={22} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#9f7d4e]">Monthly Average</p>
+                <p className="text-xl font-black text-[#855e1c]">{currency(avgMonthlyRevenue)}</p>
+                <p className="text-xs font-bold text-[#a68656]">Across active months</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#f4ecfb] text-[#5f0d7a] flex items-center justify-center shrink-0">
+                <Calendar size={22} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#9f7ca6]">Tracked Months</p>
+                <p className="text-xl font-black text-[#5f0d7a]">{sortedMonthsChronological.length}</p>
+                <p className="text-xs font-bold text-[#a484af]">History on record</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rounded Bar Graph Bubble */}
+          <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-6 sm:p-8 shadow-md mb-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-lg font-black text-[#5f0d7a]">Revenue Bar Chart</h3>
+                <p className="text-xs font-bold text-[#9f7ca6]">Monthly earnings overview</p>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-bold">
+                <span className="inline-flex items-center gap-1.5 text-[#5f0d7a]">
+                  <span className="w-3 h-3 rounded-full bg-[#5f0d7a]" /> Standard
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[#8f6929]">
+                  <span className="w-3 h-3 rounded-full bg-[#ccaa79]" /> Peak Month
+                </span>
+              </div>
+            </div>
+
+            {/* Visual Bar Columns */}
+            <div className="flex items-end justify-between gap-3 sm:gap-6 h-64 pt-8 pb-3 border-b-2 border-[#f5ebf8] overflow-x-auto no-scrollbar">
+              {sortedMonthsChronological.map((ym) => {
+                const data = monthlyData[ym];
+                const rev = data.revenue;
+                const heightPct = Math.max(12, Math.round((rev / maxMonthlyRevenue) * 100));
+                const isPeak = rev === bestMonth.revenue && rev > 0;
+
+                return (
+                  <div key={ym} className="flex-1 min-w-[58px] max-w-[80px] flex flex-col items-center h-full justify-end group">
+                    {/* Hover Tooltip / Static Amount */}
+                    <div className="opacity-80 group-hover:opacity-100 transition mb-2 text-center">
+                      <span className="text-[11px] font-black text-[#5f0d7a] bg-[#faf3fd] px-1.5 py-0.5 rounded-md border border-[#ecd9f6] whitespace-nowrap">
+                        ${rev >= 1000 ? `${(rev / 1000).toFixed(1)}k` : rev}
+                      </span>
+                    </div>
+
+                    {/* Capsule Rounded Bar */}
+                    <div className="w-full bg-[#faf3fd] rounded-full h-full flex items-end p-1 border border-[#f0dfef]">
+                      <div
+                        style={{ height: `${heightPct}%` }}
+                        className={`w-full rounded-full transition-all duration-700 ease-out shadow-sm flex items-center justify-center ${
+                          isPeak
+                            ? "bg-gradient-to-t from-[#ccaa79] to-[#ebd7b7] border-2 border-white"
+                            : "bg-gradient-to-t from-[#5f0d7a] via-[#7b149d] to-[#9922c2]"
+                        }`}
+                      >
+                        {isPeak && <Sparkles size={12} className="text-[#3b2708] mb-1 opacity-80" />}
+                      </div>
+                    </div>
+
+                    {/* Month Label */}
+                    <p className="text-xs font-black text-[#7a588b] mt-3 uppercase tracking-wider whitespace-nowrap">
+                      {formatShortMonth(ym)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Itemized Performance List (Month by Month) */}
+          <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-6 shadow-md">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-black text-[#5f0d7a]">Detailed Monthly Statement</h3>
+                <p className="text-xs font-bold text-[#9f7ca6]">Month-over-month growth calculations</p>
+              </div>
+              <Badge tone="purple">{sortedMonthsNewestFirst.length} Total Months</Badge>
+            </div>
+
+            <div className="divide-y-2 divide-[#faf4fd]">
+              {sortedMonthsNewestFirst.map((ym, index) => {
+                const current = monthlyData[ym]?.revenue || 0;
+                const nextOlderMonthKey = sortedMonthsNewestFirst[index + 1];
+                const older = nextOlderMonthKey ? monthlyData[nextOlderMonthKey]?.revenue || 0 : null;
+                const diff = older !== null ? current - older : null;
+                const pct = older && older > 0 ? ((diff / older) * 100).toFixed(0) : null;
+                const isBest = current === bestMonth.revenue && current > 0;
+
+                return (
+                  <div key={ym} className="py-4 flex items-center justify-between hover:bg-[#faf4fd] px-3 rounded-2xl transition">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${
+                        isBest ? "bg-[#faf4ea] text-[#936b28] border border-[#ccaa79]" : "bg-[#f4ecfb] text-[#5f0d7a]"
+                      }`}>
+                        {isBest ? <Award size={18} /> : <Calendar size={18} />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-extrabold text-[#280533] text-base">{formatMonthYear(ym)}</p>
+                          {isBest && <Badge tone="gold">Top Month</Badge>}
+                        </div>
+                        <p className="text-xs text-[#9f7ca6] font-bold">{monthlyData[ym]?.count} transactions logged</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="font-black text-[#5f0d7a] text-lg leading-tight">{currency(current)}</p>
+                      {diff !== null ? (
+                        <p className={`text-xs font-black inline-flex items-center gap-1 ${diff >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                          {diff >= 0 ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
+                          {diff >= 0 ? `+$${diff.toFixed(0)}` : `-$${Math.abs(diff).toFixed(0)}`} {pct ? `(${pct}%)` : ""}
+                        </p>
+                      ) : (
+                        <span className="text-[11px] text-[#ccaa79] font-bold">First recorded month</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -757,14 +912,13 @@ function AppointmentsTab({ appointments, setAppointments, onPromptCompletion }) 
         </PillButton>
       </div>
 
-      {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="inline-flex bg-white border-2 border-[#eedff5] rounded-full p-1 shadow-xs w-fit">
           {["upcoming", "past"].map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
+              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                 view === v ? "bg-[#5f0d7a] text-white shadow-sm" : "text-[#7b5c87] hover:text-[#5f0d7a]"
               }`}
             >
@@ -834,7 +988,7 @@ function AppointmentsTab({ appointments, setAppointments, onPromptCompletion }) 
                     {a.status !== "Completed" && (
                       <button
                         onClick={() => onPromptCompletion(a)}
-                        className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-black transition active:scale-95 shadow-2xs"
+                        className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-black transition active:scale-95 shadow-2xs cursor-pointer"
                       >
                         <CheckCircle2 size={14} strokeWidth={2.8} /> Complete & Pay
                       </button>
@@ -1118,11 +1272,10 @@ function InventoryTab({ inventory, setInventory }) {
                   </div>
                 </div>
 
-                {/* Stock Counter */}
                 <div className="flex items-center justify-between bg-gradient-to-r from-[#5f0d7a] to-[#7f18a2] rounded-2xl p-2 shadow-xs">
                   <button
                     onClick={() => bump(p.id, -1)}
-                    className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-90 transition"
+                    className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-90 transition cursor-pointer"
                   >
                     <ChevronDown size={18} strokeWidth={3} />
                   </button>
@@ -1134,7 +1287,7 @@ function InventoryTab({ inventory, setInventory }) {
                   </div>
                   <button
                     onClick={() => bump(p.id, 1)}
-                    className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-90 transition"
+                    className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-90 transition cursor-pointer"
                   >
                     <ChevronUp size={18} strokeWidth={3} />
                   </button>
@@ -1143,7 +1296,7 @@ function InventoryTab({ inventory, setInventory }) {
                 <div className="flex items-center justify-between pt-2 border-t border-[#f4eaf7]">
                   <button
                     onClick={() => { setRestockItem(p); setRestockUnits("1"); }}
-                    className="inline-flex items-center gap-1 text-xs font-black text-[#ccaa79] hover:text-[#b28c55]"
+                    className="inline-flex items-center gap-1 text-xs font-black text-[#ccaa79] hover:text-[#b28c55] cursor-pointer"
                   >
                     <RefreshCw size={13} strokeWidth={2.5} /> Log Restock
                   </button>
@@ -1158,7 +1311,6 @@ function InventoryTab({ inventory, setInventory }) {
         </div>
       )}
 
-      {/* Add / Edit Supply Item Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Supply Item" : "Add Supply / Expense"} icon={Package}>
         <form onSubmit={save}>
           <Field label="Supply Name">
@@ -1192,7 +1344,6 @@ function InventoryTab({ inventory, setInventory }) {
         </form>
       </Modal>
 
-      {/* Quick Restock Purchase Modal */}
       {restockItem && (
         <Modal open={true} onClose={() => setRestockItem(null)} title={`Restock ${restockItem.name}`} icon={RefreshCw}>
           <form onSubmit={handleRestockSubmit}>
