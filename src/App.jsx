@@ -719,7 +719,7 @@ function PerformanceTab({ monthlyData, revenue }) {
             </div>
           </div>
 
-          {/* Rounded Bar Graph Bubble */}
+          {/* Bar Graph Card */}
           <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-6 sm:p-8 shadow-md mb-8">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -728,36 +728,35 @@ function PerformanceTab({ monthlyData, revenue }) {
               </div>
               <div className="flex items-center gap-3 text-xs font-bold">
                 <span className="inline-flex items-center gap-1.5 text-[#5f0d7a]">
-                  <span className="w-3 h-3 rounded-full bg-[#5f0d7a]" /> Standard
+                  <span className="w-3 h-3 rounded-md bg-[#5f0d7a]" /> Standard
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-[#8f6929]">
-                  <span className="w-3 h-3 rounded-full bg-[#ccaa79]" /> Peak Month
+                  <span className="w-3 h-3 rounded-md bg-[#ccaa79]" /> Peak Month
                 </span>
               </div>
             </div>
 
-            {/* Visual Bar Columns */}
+            {/* Structured Bars (Less Rounded) */}
             <div className="flex items-end justify-between gap-3 sm:gap-6 h-64 pt-8 pb-3 border-b-2 border-[#f5ebf8] overflow-x-auto no-scrollbar">
               {sortedMonthsChronological.map((ym) => {
                 const data = monthlyData[ym];
                 const rev = data.revenue;
-                const heightPct = Math.max(12, Math.round((rev / maxMonthlyRevenue) * 100));
+                const heightPct = Math.max(10, Math.round((rev / maxMonthlyRevenue) * 100));
                 const isPeak = rev === bestMonth.revenue && rev > 0;
 
                 return (
                   <div key={ym} className="flex-1 min-w-[58px] max-w-[80px] flex flex-col items-center h-full justify-end group">
-                    {/* Hover Tooltip / Static Amount */}
                     <div className="opacity-80 group-hover:opacity-100 transition mb-2 text-center">
                       <span className="text-[11px] font-black text-[#5f0d7a] bg-[#faf3fd] px-1.5 py-0.5 rounded-md border border-[#ecd9f6] whitespace-nowrap">
                         ${rev >= 1000 ? `${(rev / 1000).toFixed(1)}k` : rev}
                       </span>
                     </div>
 
-                    {/* Capsule Rounded Bar */}
-                    <div className="w-full bg-[#faf3fd] rounded-full h-full flex items-end p-1 border border-[#f0dfef]">
+                    {/* Adjusted Rounding: rounded-xl outer track, rounded-lg inner fill */}
+                    <div className="w-full bg-[#faf3fd] rounded-xl h-full flex items-end p-1 border border-[#f0dfef]">
                       <div
                         style={{ height: `${heightPct}%` }}
-                        className={`w-full rounded-full transition-all duration-700 ease-out shadow-sm flex items-center justify-center ${
+                        className={`w-full rounded-lg transition-all duration-700 ease-out shadow-xs flex items-center justify-center ${
                           isPeak
                             ? "bg-gradient-to-t from-[#ccaa79] to-[#ebd7b7] border-2 border-white"
                             : "bg-gradient-to-t from-[#5f0d7a] via-[#7b149d] to-[#9922c2]"
@@ -767,7 +766,6 @@ function PerformanceTab({ monthlyData, revenue }) {
                       </div>
                     </div>
 
-                    {/* Month Label */}
                     <p className="text-xs font-black text-[#7a588b] mt-3 uppercase tracking-wider whitespace-nowrap">
                       {formatShortMonth(ym)}
                     </p>
@@ -777,7 +775,7 @@ function PerformanceTab({ monthlyData, revenue }) {
             </div>
           </div>
 
-          {/* Itemized Performance List (Month by Month) */}
+          {/* Detailed Monthly Statement */}
           <div className="bg-white rounded-[32px] border-2 border-[#eedff5] p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div>
