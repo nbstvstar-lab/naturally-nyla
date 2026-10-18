@@ -256,8 +256,6 @@ export default function App() {
   /* Monthly Revenue Grouping */
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const monthlyData = useMemo(() => {
     const map = {};
@@ -272,9 +270,6 @@ export default function App() {
   }, [revenue]);
 
   const currentMonthRevenue = monthlyData[currentMonthKey]?.revenue || 0;
-  const prevMonthRevenue = monthlyData[prevMonthKey]?.revenue || 0;
-  const monthDiff = currentMonthRevenue - prevMonthRevenue;
-  const monthDiffPct = prevMonthRevenue > 0 ? ((monthDiff / prevMonthRevenue) * 100).toFixed(0) : null;
 
   /* Finalize appointment completion & tip */
   const handleFinalizeCompletion = ({ apptId, tip, paymentMethod, date }) => {
@@ -324,8 +319,6 @@ export default function App() {
           <OverviewTab
             totalRevenue={totalRevenue}
             currentMonthRevenue={currentMonthRevenue}
-            monthDiff={monthDiff}
-            monthDiffPct={monthDiffPct}
             netProfit={netProfit}
             totalAppointments={totalAppointments}
             revenue={revenue}
@@ -334,7 +327,7 @@ export default function App() {
           />
         )}
         {tab === "performance" && (
-          <PerformanceTab monthlyData={monthlyData} revenue={revenue} />
+          <PerformanceTab monthlyData={monthlyData} />
         )}
         {tab === "appointments" && (
           <AppointmentsTab
@@ -430,8 +423,6 @@ const emptyRevenueForm = { date: "", source: "", service: SERVICES[0], amount: "
 function OverviewTab({
   totalRevenue,
   currentMonthRevenue,
-  monthDiff,
-  monthDiffPct,
   netProfit,
   totalAppointments,
   revenue,
@@ -476,6 +467,7 @@ function OverviewTab({
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Revenue */}
         <div className="bg-gradient-to-br from-[#5f0d7a] via-[#6f118e] to-[#450959] text-white rounded-[32px] p-6 shadow-md border-2 border-[#ccaa79]/40 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <CrossStar size={44} className="absolute -right-2 -top-2 text-[#ccaa79]/60 opacity-80" />
           <div className="w-10 h-10 rounded-2xl bg-[#ccaa79] text-[#2c1704] flex items-center justify-center font-bold">
@@ -488,6 +480,7 @@ function OverviewTab({
           </div>
         </div>
 
+        {/* This Month Card (Red Indicator Removed) */}
         <div
           onClick={onOpenPerformance}
           className="bg-gradient-to-br from-[#ccaa79] via-[#d6b789] to-[#b7915b] text-[#2e1903] rounded-[32px] p-6 shadow-md border-2 border-[#5f0d7a]/25 relative overflow-hidden flex flex-col justify-between min-h-[160px] cursor-pointer hover:brightness-105 transition"
@@ -497,25 +490,20 @@ function OverviewTab({
             <div className="w-10 h-10 rounded-2xl bg-[#5f0d7a] text-white flex items-center justify-center font-bold">
               <TrendingUp size={20} strokeWidth={2.6} />
             </div>
-            {monthDiff >= 0 ? (
-              <span className="inline-flex items-center gap-1 bg-[#2e1903] text-[#ccaa79] px-2.5 py-1 rounded-full text-xs font-black">
-                <ArrowUpRight size={13} strokeWidth={3} /> {monthDiffPct ? `+${monthDiffPct}%` : "Up"}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-rose-900 text-white px-2.5 py-1 rounded-full text-xs font-black">
-                <ArrowDownRight size={13} strokeWidth={3} /> {monthDiffPct ? `${monthDiffPct}%` : "Down"}
-              </span>
-            )}
+            <span className="text-[11px] font-black uppercase text-[#4a2e0a]/80 bg-white/30 px-3 py-1 rounded-full">
+              Monthly View
+            </span>
           </div>
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-[#4a2e0a] mb-1">This Month</p>
             <p className="text-3xl sm:text-4xl font-black text-[#2e1903] tracking-tight">{currency(currentMonthRevenue)}</p>
             <p className="text-xs font-black text-[#50330d] mt-1">
-              {monthDiff >= 0 ? `+$${monthDiff.toFixed(0)} vs last month →` : `-$${Math.abs(monthDiff).toFixed(0)} vs last month →`}
+              Tap for monthly tracker →
             </p>
           </div>
         </div>
 
+        {/* Net Earnings */}
         <div className="bg-white rounded-[32px] p-6 shadow-md border-2 border-[#eeddf4] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="w-10 h-10 rounded-2xl bg-[#f4ecfb] text-[#5f0d7a] flex items-center justify-center">
             <Sparkles size={20} strokeWidth={2.4} />
@@ -527,6 +515,7 @@ function OverviewTab({
           </div>
         </div>
 
+        {/* Total Appointments */}
         <div className="bg-white rounded-[32px] p-6 shadow-md border-2 border-[#eeddf4] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="w-10 h-10 rounded-2xl bg-[#faf4ea] text-[#936b28] flex items-center justify-center">
             <Calendar size={20} strokeWidth={2.4} />
@@ -603,7 +592,7 @@ function OverviewTab({
               value={form.service}
               onChange={(e) => setForm({ ...form, service: e.target.value })}
             />
-            <datalist id="service-list">{SERVICES.map((s) => <option key={s} value={s} />)}</datalist>
+            <datalist id="service-list">{SERVICES.map((s) => <option key={s} value={s}>{s}</option>)}</datalist>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Amount ($)">
@@ -636,7 +625,7 @@ function OverviewTab({
 /* Dedicated Performance & Bar Graph Tab                              */
 /* ------------------------------------------------------------------ */
 
-function PerformanceTab({ monthlyData, revenue }) {
+function PerformanceTab({ monthlyData }) {
   const sortedMonthsChronological = useMemo(() => Object.keys(monthlyData).sort(), [monthlyData]);
   const sortedMonthsNewestFirst = useMemo(() => Object.keys(monthlyData).sort().reverse(), [monthlyData]);
 
@@ -736,7 +725,7 @@ function PerformanceTab({ monthlyData, revenue }) {
               </div>
             </div>
 
-            {/* Structured Bars (Less Rounded) */}
+            {/* Structured Bars */}
             <div className="flex items-end justify-between gap-3 sm:gap-6 h-64 pt-8 pb-3 border-b-2 border-[#f5ebf8] overflow-x-auto no-scrollbar">
               {sortedMonthsChronological.map((ym) => {
                 const data = monthlyData[ym];
@@ -752,7 +741,6 @@ function PerformanceTab({ monthlyData, revenue }) {
                       </span>
                     </div>
 
-                    {/* Adjusted Rounding: rounded-xl outer track, rounded-lg inner fill */}
                     <div className="w-full bg-[#faf3fd] rounded-xl h-full flex items-end p-1 border border-[#f0dfef]">
                       <div
                         style={{ height: `${heightPct}%` }}
